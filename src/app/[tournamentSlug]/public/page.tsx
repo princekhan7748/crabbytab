@@ -1,0 +1,319 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useTournament } from "@/contexts/TournamentContext";
+import { SideBadge } from "@/components/ui/SideBadge";
+import {
+  Trophy,
+  Shuffle,
+  Lightbulb,
+  Award,
+  ArrowLeft,
+  MapPin,
+  Search,
+  Sparkles,
+  ExternalLink,
+} from "lucide-react";
+
+export default function PublicTournamentPage() {
+  const params = useParams();
+  const tournamentSlug = params.tournamentSlug as string;
+
+  const {
+    tournament,
+    activeRound,
+    rounds,
+    setActiveRound,
+    debates,
+    teamStandings,
+    speakerStandings,
+    motions,
+    breakResults,
+  } = useTournament();
+
+  const [activeTab, setActiveTab] = useState<"draw" | "standings" | "motions" | "break">("draw");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const isBP = tournament?.format === "bp";
+  const releasedDebates = activeRound
+    ? debates.filter((d) => d.roundId === activeRound.id && activeRound.drawStatus === "confirmed")
+    : [];
+
+  const releasedMotions = motions.filter((m) => m.released !== false);
+
+  return (
+    <div className="min-h-screen bg-[#f6f8fa] flex flex-col">
+      {/* Public Header */}
+      <header className="bg-[#24292e] text-white border-b border-[#1b1f23] py-4 px-6 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Link href="/" className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center font-mono font-bold text-sm text-white">
+              CT
+            </Link>
+            <div>
+              <h1 className="text-base sm:text-lg font-bold tracking-tight">
+                {tournament?.name || "Debate Tournament Tab"}
+              </h1>
+              <span className="text-[11px] text-gray-400">
+                Official Public Tab &bull; {isBP ? "British Parliamentary" : "2-Team Asian/Australs"}
+              </span>
+            </div>
+          </div>
+
+          <Link
+            href={`/${tournamentSlug}`}
+            className="inline-flex items-center space-x-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold transition shadow-xs"
+          >
+            <span>Admin Tab Room</span>
+            <ExternalLink className="w-3 h-3 ml-1" />
+          </Link>
+        </div>
+      </header>
+
+      {/* Navigation Pills */}
+      <div className="bg-white border-b border-[#d0d7de] sticky top-14 z-40">
+        <div className="max-w-6xl mx-auto px-6 py-2.5 flex items-center space-x-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("draw")}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-md transition flex items-center space-x-1.5 ${
+              activeTab === "draw"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Shuffle className="w-3.5 h-3.5" />
+            <span>Draw</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("standings")}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-md transition flex items-center space-x-1.5 ${
+              activeTab === "standings"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Standings Tab</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("motions")}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-md transition flex items-center space-x-1.5 ${
+              activeTab === "motions"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Lightbulb className="w-3.5 h-3.5" />
+            <span>Motions ({releasedMotions.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("break")}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-md transition flex items-center space-x-1.5 ${
+              activeTab === "break"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>Break</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Public Content */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
+        {/* 1. Draw View */}
+        {activeTab === "draw" && (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 overflow-x-auto pb-1">
+              <span className="text-xs font-bold text-gray-500 uppercase mr-1">Round:</span>
+              {rounds.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setActiveRound(r)}
+                  className={`px-3 py-1 text-xs font-bold rounded border ${
+                    activeRound?.id === r.id
+                      ? "bg-blue-600 text-white border-blue-700"
+                      : "bg-white text-gray-700 border-gray-300"
+                  }`}
+                >
+                  {r.name}
+                </button>
+              ))}
+            </div>
+
+            {releasedDebates.length === 0 ? (
+              <div className="bg-white border border-[#d0d7de] rounded-lg p-10 text-center text-gray-500 text-xs">
+                The draw for {activeRound?.name || "this round"} has not been released yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {releasedDebates.map((d, idx) => (
+                  <div key={d.id} className="bg-white border border-[#d0d7de] rounded-lg p-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-3">
+                      <span className="font-bold text-xs text-gray-900 flex items-center space-x-1">
+                        <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{d.venueName || `Room ${idx + 1}`}</span>
+                      </span>
+                      <span className="text-xs text-gray-600 font-medium">
+                        Chair: <strong className="text-gray-900">{d.adjudicators?.chairName || "TBD"}</strong>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+                      {isBP ? (
+                        <>
+                          <div className="p-2 bg-rose-50/60 rounded border border-rose-200 font-bold text-gray-900">
+                            <span className="text-[10px] text-rose-700 block uppercase">OG</span>
+                            {d.teams?.OG?.teamName || "—"}
+                          </div>
+                          <div className="p-2 bg-sky-50/60 rounded border border-sky-200 font-bold text-gray-900">
+                            <span className="text-[10px] text-sky-700 block uppercase">OO</span>
+                            {d.teams?.OO?.teamName || "—"}
+                          </div>
+                          <div className="p-2 bg-amber-50/60 rounded border border-amber-200 font-bold text-gray-900">
+                            <span className="text-[10px] text-amber-700 block uppercase">CG</span>
+                            {d.teams?.CG?.teamName || "—"}
+                          </div>
+                          <div className="p-2 bg-purple-50/60 rounded border border-purple-200 font-bold text-gray-900">
+                            <span className="text-[10px] text-purple-700 block uppercase">CO</span>
+                            {d.teams?.CO?.teamName || "—"}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="p-2.5 bg-emerald-50/60 rounded border border-emerald-200 font-bold text-gray-900 sm:col-span-2">
+                            <span className="text-[10px] text-emerald-700 block uppercase">Affirmative</span>
+                            {d.teams?.AFF?.teamName || "—"}
+                          </div>
+                          <div className="p-2.5 bg-slate-50 rounded border border-slate-200 font-bold text-gray-900 sm:col-span-2">
+                            <span className="text-[10px] text-slate-700 block uppercase">Negative</span>
+                            {d.teams?.NEG?.teamName || "—"}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 2. Standings View */}
+        {activeTab === "standings" && (
+          <div className="bg-white border border-[#d0d7de] rounded-lg shadow-xs overflow-hidden">
+            <div className="p-3 bg-[#f6f8fa] border-b border-[#d0d7de] font-bold text-xs text-gray-900">
+              Team Standings Tab
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left tabby-table">
+                <thead>
+                  <tr>
+                    <th className="w-12 text-center">#</th>
+                    <th>Team</th>
+                    <th>Institution</th>
+                    <th className="text-right">Points</th>
+                    <th className="text-right">Total Speaks</th>
+                    <th className="text-right">Avg Speaks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamStandings.map((t) => (
+                    <tr key={t.teamId} className="hover:bg-gray-50">
+                      <td className="text-center font-mono font-bold text-xs">{t.rank}</td>
+                      <td className="font-bold text-gray-900 text-xs">{t.teamName}</td>
+                      <td className="text-xs text-gray-600">{t.institutionCode || "—"}</td>
+                      <td className="text-right font-mono font-bold text-sm text-blue-600">{t.points}</td>
+                      <td className="text-right font-mono font-semibold text-xs text-gray-800">
+                        {t.totalSpeakerScore.toFixed(1)}
+                      </td>
+                      <td className="text-right font-mono text-xs text-gray-600">
+                        {t.averageSpeakerScore.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Motions View */}
+        {activeTab === "motions" && (
+          <div className="space-y-4">
+            {releasedMotions.map((m) => (
+              <div key={m.id} className="bg-white border border-[#d0d7de] rounded-lg p-5 shadow-2xs">
+                <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+                  {m.reference || "Motion"}
+                </span>
+                <blockquote className="text-base font-bold text-gray-900 my-2.5 pl-3 border-l-4 border-amber-500">
+                  &ldquo;{m.text}&rdquo;
+                </blockquote>
+                {m.infoSlide && (
+                  <div className="mt-2 p-3 bg-amber-50/50 rounded border border-amber-200 text-xs text-amber-950">
+                    <strong className="block text-[10px] uppercase font-bold text-amber-800">Infoslide:</strong>
+                    <p>{m.infoSlide}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 4. Break View */}
+        {activeTab === "break" && (
+          <div className="space-y-6">
+            {breakResults.map((res) => (
+              <div key={res.category.id} className="bg-white border border-[#d0d7de] rounded-lg shadow-xs overflow-hidden">
+                <div className="p-3 bg-purple-50 border-b border-purple-200 font-bold text-xs text-purple-900">
+                  {res.category.name} Breaking Teams (Top {res.category.breakSize})
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left tabby-table">
+                    <thead>
+                      <tr>
+                        <th className="w-16 text-center">Seed</th>
+                        <th>Team</th>
+                        <th>Institution</th>
+                        <th className="text-right">Points</th>
+                        <th className="text-right">Total Speaks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {res.breakingTeams.map((b) => (
+                        <tr key={b.team.id} className="hover:bg-purple-50/30">
+                          <td className="text-center font-mono font-bold text-xs text-purple-700">
+                            {b.seed}
+                          </td>
+                          <td className="font-bold text-gray-900 text-xs">{b.team.name}</td>
+                          <td className="text-xs text-gray-600">{b.team.institutionName || "—"}</td>
+                          <td className="text-right font-mono font-bold text-xs text-blue-600">
+                            {b.standing.points} pts
+                          </td>
+                          <td className="text-right font-mono text-xs text-gray-800">
+                            {b.standing.totalSpeakerScore.toFixed(1)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-[#d0d7de] py-4 px-6 text-center text-xs text-gray-500">
+        CrabbyTab Debate Tabulation System &bull; Live Real-Time Tab
+      </footer>
+    </div>
+  );
+}
